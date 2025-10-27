@@ -24,7 +24,7 @@ const Home: NextPage = () => {
     Entrar
   </button>
 </Link> 
-<Link href={ROUTES.INGR_CONFEI}>
+<Link href={ROUTES.AGN_APROV}>
   <button className="px-4 py-2 bg-purple-200 text-purple-800 rounded-full">
     TESTE
   </button>

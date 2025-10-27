@@ -73,9 +73,12 @@ export default function MontarBolo() {
         </nav>
       </header>
 
-      <div>O nosso servico consiste na seleçao
-de todos os elementos para a
-montagem do seu Bolo Perfeito</div>
+
+<br></br>    <div><p className="max-w-xl text-lg text-gray-700 leading-relaxed text-justify">
+    O nosso serviço consiste na seleção de todos os elementos necessários para a
+    montagem do seu <span className="font-semibold text-pink-600">Bolo Perfeito</span>.
+  </p></div>
+  <br></br>
       <div className="flex space-x-8">
         <div className="w-1/4 space-y-4">
           <button

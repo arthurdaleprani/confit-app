@@ -73,7 +73,7 @@ export default function MontarBolo() {
         </nav>
       </header>
 
-      <div>O nosso servico consiste na seleçao
+       <div className="flex space-x-8">O nosso servico consiste na seleçao
         de todos os elementos para a
         montagem do seu Bolo Perfeito</div>     
          <div className="flex space-x-8">

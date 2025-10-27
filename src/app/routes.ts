@@ -5,7 +5,9 @@ const ROUTES = {
   CADASTRO: "/cadastro", 
   INICIAR_PEDIDO: "/pedido/iniciarPedido",
   FAZER_PEDIDO: "/pedido/pedidoCliente",
-  INGR_CONFEI: "/pedido/ingredientesConfeiteira"
+  INGR_CONFEI: "/pedido/ingredientesConfeiteira",
+  AGN_PED_CONF: "/pedido/agendaPedidosConfeiteira",
+  AGN_APROV: "/pedido/pedenteAprovarConfeiteira"
 
 };
 
