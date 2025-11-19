@@ -1,36 +1,14 @@
 import { NextPage } from "next";
 import ROUTES from "../app/routes"; 
 import Link from "next/link";
+import Header from "./components/headerInicioLoginCadastro";
 
 const Home: NextPage = () => {
   return (
     <div className="min-h-screen bg-purple-50">
       {/* Navbar */}
-      <nav className="flex justify-between items-center p-6 bg-white shadow">
-        <div className="flex items-center space-x-6">
-          <a href="#" className="text-gray-700 hover:text-purple-600">Sobre a ConfIT</a>
-          <a href="#" className="text-gray-700 hover:text-purple-600">Experiências</a>
-          <a href="#" className="text-gray-700 hover:text-purple-600">Fale Conosco</a>
-        </div>
-        <div className="flex items-center space-x-1">
-            <div className="w-6 h-6 rounded-full border-2 border-purple-300"></div>
-            <span className="font-bold text-gray-900">ConfIT</span>
-          </div>
-        <div className="flex items-center space-x-6">
-          <a href="#" className="text-gray-700 hover:text-purple-600">Pedidos Online</a>
-          <a href="#" className="text-gray-700 hover:text-purple-600">Confeitaria Online</a>
-<Link href={ROUTES.LOGIN}>
-  <button className="px-4 py-2 bg-purple-200 text-purple-800 rounded-full">
-    Entrar
-  </button>
-</Link> 
-<Link href={ROUTES.AGN_APROV}>
-  <button className="px-4 py-2 bg-purple-200 text-purple-800 rounded-full">
-    TESTE
-  </button>
-</Link> 
-     </div>
-      </nav>
+        <Header />
+
 
       {/* Hero Section */}
 <header className="text-center py-32 bg-purple-200">

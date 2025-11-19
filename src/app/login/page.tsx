@@ -5,6 +5,7 @@ import ROUTES from "../routes";
 import { auth } from "../../../firebaseconfig"
 import { signInWithEmailAndPassword } from "firebase/auth";
 import { useRouter } from "next/navigation";
+import Header from "../components/headerInicioLoginCadastro";
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -48,26 +49,8 @@ const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
   return (
     <div className="min-h-screen flex flex-col">
       {/* 🔹 Navbar */}
-      <nav className="flex justify-between items-center px-8 py-4 bg-white shadow-sm">
-        <div className="flex space-x-6">
-          <a href="#" className="text-gray-700 hover:text-gray-900">Sobre a ConfIT</a>
-          <a href="#" className="text-gray-700 hover:text-gray-900">Experiências</a>
-          <a href="#" className="text-gray-700 hover:text-gray-900">Fale Conosco</a>
-        </div>
-        <div className="flex items-center space-x-1">
-          <div className="w-6 h-6 rounded-full border-2 border-purple-300"></div>
-          <span className="font-bold text-gray-900">ConfIT</span>
-        </div>
-        <div className="flex items-center space-x-6">
-          <a href="#" className="text-gray-700 hover:text-gray-900">Pedidos Online</a>
-          <a href="#" className="text-gray-700 hover:text-gray-900">Confeitaria Online</a>
-          <Link href={ROUTES.CADASTRO}>
-            <button className="px-4 py-2 bg-purple-200 text-purple-800 rounded-full">
-              Cadastro
-            </button>
-          </Link>
-        </div>
-      </nav>
+            <Header />
+
 
       {/* 🔹 Formulário de login */}
       <div className="flex-1 flex flex-col justify-center items-center bg-gray-50">

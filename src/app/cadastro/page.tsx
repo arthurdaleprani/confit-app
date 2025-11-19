@@ -4,6 +4,7 @@ import Link from "next/link";
 import ROUTES from "../routes";
 import { createUserWithEmailAndPassword } from "firebase/auth";
 import { auth } from "../../../firebaseconfig"; // ✅ importa apenas uma vez
+import Header from "../components/headerInicioLoginCadastro";
 
 export default function Register() {
   const [accountType, setAccountType] = useState<"cliente" | "confeitaria">("cliente");
@@ -81,28 +82,8 @@ export default function Register() {
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
       {/* Navbar */}
-      <nav className="flex justify-between items-center px-8 py-4 bg-white shadow-sm">
-        <div className="flex space-x-6">
-          <a href="#" className="text-gray-700 hover:text-gray-900">Sobre a ConfIT</a>
-          <a href="#" className="text-gray-700 hover:text-gray-900">Experiências</a>
-          <a href="#" className="text-gray-700 hover:text-gray-900">Fale Conosco</a>
-        </div>
+            <Header />
 
-        <div className="flex items-center space-x-1">
-          <div className="w-6 h-6 rounded-full border-2 border-purple-300"></div>
-          <span className="font-bold text-gray-900">ConfIT</span>
-        </div>
-
-        <div className="flex items-center space-x-6">
-          <a href="#" className="text-gray-700 hover:text-gray-900">Pedidos Online</a>
-          <a href="#" className="text-gray-700 hover:text-gray-900">Confeitaria Online</a>
-          <Link href={ROUTES.LOGIN}>
-            <button className="px-4 py-2 bg-purple-200 text-purple-800 rounded-full">
-              Entrar
-            </button>
-          </Link>
-        </div>
-      </nav>
 
       {/* Conteúdo principal */}
       <div className="flex-1 flex">
