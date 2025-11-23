@@ -35,7 +35,7 @@ type PedidoResponse = {
 
 interface Pedido {
   id: number;
-  data: string; // yyyy-mm-dd
+  data: string;
   descricao: string;
   status: "pendente" | "aprovado" | "reprovado";
   tiposIngredientes: TipoIngrediente[];
@@ -95,49 +95,52 @@ export default function Agenda() {
   const [valorOrcamento, setValorOrcamento] = useState("");
   const [observacoes, setObservacoes] = useState("");
   const [loading, setLoading] = useState(false);
+  const [idConfeiteiro, setIdConfeiteiro] = useState<number | null>(null);
 
-  const userStorage = localStorage.getItem("usuario");
-  const user: UserStorage | null = userStorage ? JSON.parse(userStorage) : null;
-  const idConfeiteiro = user?.id;
-
-  const diasSemana = Array.from({ length: 5 }, (_, i) => {
-    const d = new Date(primeiroDia);
-    d.setDate(d.getDate() + i);
-    return d.toISOString().split("T")[0];
-  });
-
-  const fetchPedidos = async () => {
-    if (!idConfeiteiro) return;
-    setLoading(true);
-    try {
-      const token = localStorage.getItem("token");
-      const res = await fetch(`https://confeitaria-production.up.railway.app/api/pedido/buscar/confeiteiro/${idConfeiteiro}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (!res.ok) throw new Error("Erro ao buscar pedidos");
-      const data: PedidoResponse[] = await res.json();
-
-      const pedidosMapeados: Pedido[] = data.map(p => ({
-        id: p.id,
-        data: p.dataAtualizacao.split("T")[0],
-        descricao: `Pedido #${p.id}`,
-        status: p.status.toLowerCase() as "pendente" | "aprovado" | "reprovado",
-        tiposIngredientes: p.tiposIngredientes,
-        cliente: p.cliente,
-      }));
-
-      setPedidos(pedidosMapeados.filter(p => p.status === "pendente"));
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
+  // ✅ Pega usuário do localStorage dentro de useEffect
   useEffect(() => {
+    const userStorage = localStorage.getItem("usuario");
+    if (userStorage) {
+      const user: UserStorage = JSON.parse(userStorage);
+      setIdConfeiteiro(user.id);
+    }
+  }, []);
+
+  // ✅ Busca pedidos quando idConfeiteiro ou primeiroDia mudar
+  useEffect(() => {
+    const fetchPedidos = async () => {
+      if (!idConfeiteiro) return;
+      setLoading(true);
+      try {
+        const token = localStorage.getItem("token");
+        console.log("confeiteiro", idConfeiteiro)
+        const res = await fetch(`https://confeitaria-production.up.railway.app/api/pedido/buscar/confeiteiro/${idConfeiteiro}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!res.ok) throw new Error("Erro ao buscar pedidos");
+        const data: PedidoResponse[] = await res.json();
+
+        const pedidosMapeados: Pedido[] = data.map(p => ({
+          id: p.id,
+          data: p.dataAtualizacao.split("T")[0],
+          descricao: `Pedido #${p.id}`,
+          status: p.status.toLowerCase() as "pendente" | "aprovado" | "reprovado",
+          tiposIngredientes: p.tiposIngredientes,
+          cliente: p.cliente,
+        }));
+
+        setPedidos(pedidosMapeados.filter(p => p.status === "pendente"));
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
     fetchPedidos();
   }, [primeiroDia, idConfeiteiro]);
 
+  // --- Modal e ações ---
   const openModal = (p: Pedido) => {
     setPedidoSelecionado(p);
     setModalOpen(true);
@@ -152,19 +155,13 @@ export default function Agenda() {
   const enviarOrcamento = async () => {
     if (!pedidoSelecionado) return;
     setLoading(true);
-
     try {
       const token = localStorage.getItem("token");
-      const body = { valor: Number(valorOrcamento), codigoPedido: pedidoSelecionado.id };
-
-      const res = await fetch("https://confeitaria-production.up.railway.app/api/pagamento/criar", {
+      await fetch("https://confeitaria-production.up.railway.app/api/pagamento/criar", {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify(body),
+        body: JSON.stringify({ valor: Number(valorOrcamento), codigoPedido: pedidoSelecionado.id }),
       });
-      if (!res.ok) throw new Error("Erro ao criar pagamento");
-      await res.json();
-
       setPedidos(prev =>
         prev.map(p => (p.id === pedidoSelecionado.id ? { ...p, status: "aprovado" } : p))
       );
@@ -180,16 +177,11 @@ export default function Agenda() {
     setLoading(true);
     try {
       const token = localStorage.getItem("token");
-      const body = { status: "Recusado", codigoPedido: pedido.id };
-
-      const res = await fetch("https://confeitaria-production.up.railway.app/api/pedido/alterar/status", {
+      await fetch("https://confeitaria-production.up.railway.app/api/pedido/alterar/status", {
         method: "PATCH",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify(body),
+        body: JSON.stringify({ status: "reprovado", codigoPedido: pedido.id }),
       });
-      if (!res.ok) throw new Error("Erro ao reprovar pedido");
-      await res.json();
-
       setPedidos(prev =>
         prev.map(p => (p.id === pedido.id ? { ...p, status: "reprovado" } : p))
       );
@@ -213,6 +205,12 @@ export default function Agenda() {
       newD.setDate(newD.getDate() - 5);
       return newD;
     });
+
+  const diasSemana = Array.from({ length: 5 }, (_, i) => {
+    const d = new Date(primeiroDia);
+    d.setDate(d.getDate() + i);
+    return d.toISOString().split("T")[0];
+  });
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">

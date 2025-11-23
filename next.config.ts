@@ -1,8 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
- output: 'export',
-  basePath: '/confit-app', 
-  assetPrefix: '/confit-app/',};
+  output: 'export', // mantém a exportação estática, se quiser
+};
 
 export default nextConfig;
