@@ -1,200 +1,324 @@
 "use client";
+
 import Link from "next/link";
-import { User, ChevronLeft, ChevronRight, Check } from "lucide-react"; 
-import { useState, useMemo } from "react";
-import ROUTES from "@/app/routes";
+import { ChevronLeft } from "lucide-react";
+import { useState, useEffect } from "react";
 import Header from "../../components/header";
+import toast from "react-hot-toast";
+import { useRouter } from "next/navigation";
+import ROUTES from "@/app/routes";
 
-type Etapa = "Massa" | "Recheio" | "Decoração";
-
-const opcoes: Record<Etapa, string[]> = {
-    Massa: ["Chocolate", "Baunilha", "Red Velvet"],
-    Recheio: ["Brigadeiro", "Paçoca", "Pistache", "Doce de Leite", "Avelã Crocante", "Caramelo Salgado", "Ninho"],
-    Decoração: ["Frutas", "Granulado", "Chantilly"],
+type TipoIngredienteResponse = {
+  id: number;
+  nome: string;
+  ingrediente: { id_Ingrediente: number; nome: string };
 };
 
-const NEXT_PAGE_URL = ROUTES.ORCAMENTO;
+type ConfeiteiroResponse = {
+  id: number;
+  nomeCompleto: string;
+};
 
 export default function MontarBolo() {
-    const [etapa, setEtapa] = useState<Etapa>("Recheio"); 
-    const [selecionados, setSelecionados] = useState<Record<Etapa, string[]>>({
-        Massa: [],
-        Recheio: ["Brigadeiro", "Paçoca"],
-        Decoração: [],
+  const MAX_RECHEIOS = 2;
+const router = useRouter();
+
+  const [tipos, setTipos] = useState<TipoIngredienteResponse[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const dataEvento = localStorage.getItem("dataEvento");
+  if (!dataEvento) {
+    console.error("Nenhuma data salva!");
+    return null;
+  }
+  const dataEventoISO = new Date(dataEvento).toISOString();
+
+  const [etapa, setEtapa] = useState<string>("");
+  const [selecionados, setSelecionados] = useState<Record<string, string[]>>({});
+  const [mostrarConfeitarias, setMostrarConfeitarias] = useState(false);
+
+  const [confeitarias, setConfeitarias] = useState<ConfeiteiroResponse[]>([]);
+  const [loadingConfeitarias, setLoadingConfeitarias] = useState(false);
+
+  // Buscar tipos de ingrediente
+  useEffect(() => {
+    const fetchTipos = async () => {
+      try {
+        const res = await fetch("https://localhost:7039/api/ingrediente/buscar/tipo");
+        if (!res.ok) throw new Error("Erro ao buscar tipos de ingrediente");
+        const data: TipoIngredienteResponse[] = await res.json();
+        setTipos(data);
+
+        const etapasUnicas = Array.from(new Set(data.map(t => t.ingrediente.nome)));
+        const initSelecionados: Record<string, string[]> = {};
+        etapasUnicas.forEach(e => (initSelecionados[e] = []));
+        setSelecionados(initSelecionados);
+        setEtapa(etapasUnicas[0] || "");
+      } catch (err: any) {
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchTipos();
+  }, []);
+
+  // --- Loading bonito para tipos ---
+  if (loading)
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-white">
+        <div className="flex flex-col items-center space-y-4">
+          <div className="w-16 h-16 border-4 border-purple-400 border-t-transparent rounded-full animate-spin"></div>
+          <p className="text-gray-700 text-lg font-medium">Carregando tipos de ingredientes...</p>
+        </div>
+      </div>
+    );
+
+  if (error)
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-white">
+        <p className="text-red-500 text-lg">{error}</p>
+      </div>
+    );
+
+  if (!etapa)
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-white">
+        <p className="text-gray-700 text-lg">Nenhuma etapa encontrada</p>
+      </div>
+    );
+
+  const steps = Array.from(new Set(tipos.map(t => t.ingrediente.nome)));
+  const opcoes = steps.reduce((acc, step) => {
+    const items = [...tipos.filter(t => t.ingrediente.nome === step)];
+    if (step.toLowerCase() !== "massa" && step.toLowerCase() !== "tamanho") {
+      items.push({ id: -1, nome: "Nenhum", ingrediente: { id_Ingrediente: 0, nome: step } });
+    }
+    acc[step] = items;
+    return acc;
+  }, {} as Record<string, TipoIngredienteResponse[]>);
+
+  const currentStepIndex = steps.indexOf(etapa);
+  const isFinalStep = currentStepIndex === steps.length - 1;
+
+  const toggleSelecionado = (id: number) => {
+    const valor = id.toString();
+    setSelecionados(prev => {
+      const atual = prev[etapa];
+      if (valor === "-1") return { ...prev, [etapa]: ["-1"] };
+      if (atual.includes("-1")) return { ...prev, [etapa]: [valor] };
+      if (atual.includes(valor)) return { ...prev, [etapa]: atual.filter(x => x !== valor) };
+      if (etapa.toLowerCase() === "recheio") {
+        if (atual.length >= MAX_RECHEIOS) return prev;
+        return { ...prev, [etapa]: [...atual, valor] };
+      }
+      return { ...prev, [etapa]: [valor] };
+    });
+  };
+
+  const buscarConfeiteiros = async () => {
+    setLoadingConfeitarias(true);
+    try {
+      const params = new URLSearchParams();
+      const userStorage = localStorage.getItem("usuario");
+      const user = JSON.parse(userStorage!);
+
+      params.append("CodigoCliente", user.id.toString());
+      tipos.forEach(t => params.append("CodigosTiposIngredientes", t.id.toString()));
+
+      const res = await fetch(
+        `https://localhost:7039/api/confeiteiro/buscar/confeiteiros-proximos?${params.toString()}`
+      );
+
+      if (!res.ok) {
+        const text = await res.text();
+        console.error("Erro API:", text);
+        setConfeitarias([]);
+        setMostrarConfeitarias(true);
+        return;
+      }
+
+      const data = await res.json();
+      setConfeitarias(data);
+      setMostrarConfeitarias(true);
+    } finally {
+      setLoadingConfeitarias(false);
+    }
+  };
+
+  const selecionarConfeiteiro = async (confeiteiroId: number) => {
+    const userStorage = localStorage.getItem("usuario");
+    const user = JSON.parse(userStorage!);
+
+    const ingredientesSelecionadosIds = Object.values(selecionados)
+      .flat()
+      .map(x => parseInt(x))
+      .filter(x => x !== -1);
+
+    const body = {
+      CodigoCliente: user.id,
+      CodigoConfeiteiro: confeiteiroId,
+      DataAtualizacao: dataEventoISO,
+      CodigosTiposIngredientes: ingredientesSelecionadosIds,
+    };
+
+    const res = await fetch("https://localhost:7039/api/pedido/criar", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
     });
 
-    const steps: Etapa[] = ["Massa", "Recheio", "Decoração"];
-    const currentStepIndex = steps.indexOf(etapa);
-    
-    const MAX_RECHEIOS = 3; 
+    if (!res.ok) {
+      const text = await res.text();
+      toast.error("Erro ao criar pedido: " + text);
+      return;
+    }
 
-    const toggleSelecionado = (item: string) => {
-        setSelecionados(prev => {
-            const currentSelected = prev[etapa];
+    toast.success("Pedido criado com sucesso!");
+      router.push(ROUTES.INICIAR_PEDIDO);
 
-            if (currentSelected.includes(item)) {
-                return { ...prev, [etapa]: currentSelected.filter((i) => i !== item) };
-            } else {
-                if (etapa === "Recheio" && currentSelected.length >= MAX_RECHEIOS) {
-                    return prev;
-                }
-                // Garante que apenas um item de Massa seja selecionado (se necessário)
-                if (etapa === "Massa") {
-                    return { ...prev, [etapa]: [item] };
-                }
-                return { ...prev, [etapa]: [...currentSelected, item] };
-            }
-        });
-    };
+  };
 
-    const irProximaEtapa = () => {
-        const nextIndex = currentStepIndex + 1;
-        if (nextIndex < steps.length) {
-            setEtapa(steps[nextIndex]);
-        }
-    };
+  const isNextDisabled =
+    (etapa.toLowerCase() === "massa" && selecionados[etapa].length === 0) ||
+    (etapa.toLowerCase() === "recheio" && selecionados[etapa].length === 0);
 
-    const irEtapaAnterior = () => {
-        const prevIndex = currentStepIndex - 1;
-        if (prevIndex >= 0) {
-            setEtapa(steps[prevIndex]);
-        }
-    };
+  return (
+    <div className="min-h-screen bg-white">
+      <Header />
 
-    const isNextDisabled = etapa === "Recheio" && selecionados.Recheio.length === 0;
+      <div className="pt-24 max-w-7xl mx-auto px-6 pb-10">
+        {!mostrarConfeitarias && (
+          <div className="flex">
+            <aside className="w-1/4 pr-8 border-r border-gray-200">
+           <button
+  onClick={() => {
+    const currentIndex = steps.indexOf(etapa); // recalcula no clique
+    if (currentIndex > 0) setEtapa(steps[currentIndex - 1]);
+  }}
+  className="flex items-center text-gray-600 hover:text-gray-900 mb-8"
+>
+  <ChevronLeft className="w-5 h-5 mr-1" /> Voltar
+</button>
 
-    // Lógica para o botão de finalização/redirecionamento
-    const isFinalStep = etapa === steps[steps.length - 1];
+              <div className="space-y-4">
+                {steps.map((step, idx) => {
+                  const active = step === etapa;
+                  const completed = idx < currentStepIndex;
 
-    // O botão deve ser um Link ou usar o Router.push na última etapa.
-    // Usaremos o Link do Next.js para a etapa final para garantir o redirecionamento.
-
-    return (
-        <div className="min-h-screen flex bg-white">
-                    <Header />
-
-            <div className="flex w-full max-w-7xl mx-auto py-10 px-6">
-                
-                <div className="w-1/4 pr-10 border-r border-gray-200">
-                    
-                    <button 
-                        onClick={irEtapaAnterior}
-                        className="flex items-center text-gray-700 hover:text-gray-900 mb-10"
+                  return (
+                    <button
+                      key={step}
+                      disabled={!active && !completed}
+                      onClick={() => (active || completed) && setEtapa(step)}
+                      className={`
+                        w-full py-3 rounded-lg text-lg transition
+                        ${active ? "bg-purple-500 text-white font-semibold shadow"
+                          : completed ? "bg-purple-200 text-purple-900"
+                          : "bg-gray-100 text-gray-600"}
+                        ${!active && !completed ? "opacity-50 cursor-not-allowed" : "hover:opacity-90"}
+                      `}
                     >
-                        <ChevronLeft className="w-5 h-5 mr-1" /> Voltar
+                      {step}
                     </button>
-                    
-                    <p className="text-gray-500 text-sm mb-8">
-                        O nosso serviço consiste na seleção de todos os elementos para a montagem do seu <span className="font-bold text-gray-800">Bolo Perfeito</span>
-                    </p>
+                  );
+                })}
+              </div>
+            </aside>
 
-                    <div className="space-y-4">
-                        {steps.map((step) => {
-                            const isActive = step === etapa;
-                            const isCompleted = steps.indexOf(step) < currentStepIndex;
+            <section className="flex-1 pl-10">
+              <h1 className="text-3xl font-bold text-gray-900 mb-1">
+                Selecione os {etapa.toLowerCase()}s
+              </h1>
+              <p className="text-gray-500 mb-8">
+                {etapa.toLowerCase() === "recheio"
+                  ? `Escolha até ${MAX_RECHEIOS} recheios`
+                  : "Escolha uma opção"}
+              </p>
 
-                            let bgColor = isCompleted ? "bg-purple-200" : "bg-purple-100";
-                            let textColor = isCompleted ? "text-white" : "text-gray-500";
-                            
-                            if (isActive) {
-                                bgColor = "bg-purple-400";
-                                textColor = "text-white font-semibold";
-                            } else if (isCompleted) {
-                                bgColor = "bg-purple-300";
-                                textColor = "text-white font-semibold";
-                            } else {
-                                bgColor = "bg-purple-100"; 
-                                textColor = "text-gray-600";
-                            }
-                            
-                            return (
-                                <button
-                                    key={step}
-                                    onClick={() => setEtapa(step)}
-                                    className={`w-full py-3 rounded-lg text-center transition-colors duration-200 
-                                        ${bgColor} ${textColor} text-lg`}
-                                    disabled={!isCompleted && !isActive}
-                                >
-                                    {step}
-                                </button>
-                            );
-                        })}
+              <div className="space-y-4 max-h-[420px] overflow-y-auto pr-2">
+                {opcoes[etapa]?.map(item => {
+                  const selected = selecionados[etapa]?.includes(item.id.toString());
+                  return (
+                    <label key={item.id} className="flex items-center space-x-4 text-lg py-2 cursor-pointer hover:opacity-80">
+                      <input
+                        type="checkbox"
+                        checked={selected}
+                        onChange={() => toggleSelecionado(item.id)}
+                        className="w-5 h-5 border-gray-400 rounded"
+                      />
+                      <span>{item.nome}</span>
+                    </label>
+                  );
+                })}
+              </div>
+
+              <div className="flex justify-end mt-10">
+                {isFinalStep ? (
+                  <button
+                    onClick={buscarConfeiteiros}
+                    disabled={loadingConfeitarias}
+                    className="px-6 py-3 bg-purple-600 text-white rounded-full text-lg flex items-center justify-center"
+                  >
+                    {loadingConfeitarias && (
+                      <div className="w-5 h-5 border-4 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+                    )}
+                    {loadingConfeitarias ? "Buscando..." : "Buscar Confeitarias"}
+                  </button>
+                ) : (
+                  <button
+                    disabled={isNextDisabled}
+                    onClick={() => setEtapa(steps[currentStepIndex + 1])}
+                    className={`px-6 py-3 rounded-full text-lg
+                      ${isNextDisabled ? "bg-gray-200 text-gray-500" : "bg-purple-500 text-white"}
+                    `}
+                  >
+                    Avançar
+                  </button>
+                )}
+              </div>
+            </section>
+          </div>
+        )}
+
+        {/* LISTAGEM DE CONFEITEIROS */}
+        {mostrarConfeitarias && (
+          <div className="mt-16">
+            <h1 className="text-3xl font-bold text-gray-900 mb-6">Confeitarias disponíveis</h1>
+
+            {loadingConfeitarias && (
+              <div className="flex flex-col items-center space-y-2">
+                <div className="w-12 h-12 border-4 border-purple-400 border-t-transparent rounded-full animate-spin"></div>
+                <p className="text-gray-700">Buscando confeitarias...</p>
+              </div>
+            )}
+
+            {!loadingConfeitarias && confeitarias.length === 0 && (
+              <p>Nenhuma confeitaria encontrada</p>
+            )}
+
+            {!loadingConfeitarias && confeitarias.length > 0 && (
+              <div className="space-y-4">
+                {confeitarias.map(c => (
+                  <div key={c.id} className="p-4 border rounded-lg flex items-center justify-between">
+                    <div>
+                      <p className="text-xl font-semibold">{c.nomeCompleto}</p>
                     </div>
-                </div>
-
-                <div className="flex-1 pl-10">
-                    <h1 className="text-3xl font-bold text-gray-900 mb-2">
-                        {/* Título dinâmico para a etapa */}
-                        Selecione os {etapa.toLowerCase()}s
-                    </h1>
-                    <p className="text-gray-500 mb-8">
-                        {etapa === "Recheio" 
-                            ? `Escolha até ${MAX_RECHEIOS} recheios do seu bolo ideal` 
-                            : `Escolha os itens desejados para o seu bolo`}
-                    </p>
-
-                    <div className="space-y-4 max-h-96 overflow-y-auto">
-                        {opcoes[etapa].map((item) => {
-                            const isSelected = selecionados[etapa].includes(item);
-                            const isDisabled = etapa === "Recheio" && !isSelected && selecionados.Recheio.length >= MAX_RECHEIOS;
-                            const itemTextStyle = isDisabled ? 'text-gray-400' : 'text-gray-800';
-
-                            return (
-                                <label 
-                                    key={item} 
-                                    className={`flex items-center space-x-4 text-xl py-2 transition-opacity cursor-pointer ${isDisabled ? 'opacity-50' : 'hover:opacity-80'}`}
-                                >
-                                    <input
-                                        type="checkbox"
-                                        checked={isSelected}
-                                        onChange={() => toggleSelecionado(item)}
-                                        disabled={isDisabled}
-                                        className="appearance-none w-5 h-5 border border-gray-400 rounded-sm checked:bg-purple-500 checked:border-purple-500 checked:text-white 
-                                                   focus:outline-none focus:ring-2 focus:ring-purple-300 transition duration-150 relative"
-                                        style={{
-                                            backgroundImage: isSelected ? `url("data:image/svg+xml,%3csvg viewBox='0 0 16 16' fill='white' xmlns='http://www.w3.org/2000/svg'%3e%3cpath d='M12.207 4.793a1 1 0 010 1.414l-5 5a1 1 0 01-1.414 0l-2-2a1 1 0 011.414-1.414L6.5 9.086l4.293-4.293a1 1 0 011.414 0z'/%3e%3c/svg%3e")` : 'none',
-                                            backgroundSize: '100% 100%',
-                                            backgroundRepeat: 'no-repeat',
-                                            backgroundColor: isSelected ? 'rgb(147 51 234)' : 'transparent',
-                                            borderColor: isSelected ? 'rgb(147 51 234)' : 'rgb(156 163 175)',
-                                        }}
-                                    />
-                                    <span className={itemTextStyle}>{item}</span>
-                                </label>
-                            );
-                        })}
-                    </div>
-
-                    {/* Botão de Próximo / Buscar Confeitarias */}
-                    <div className="flex justify-end mt-10">
-                        {isFinalStep ? (
-                             <Link
-                                href={NEXT_PAGE_URL}
-                                className="flex items-center justify-center w-full max-w-sm px-6 py-3 rounded-full text-lg transition-all text-white bg-purple-600 hover:bg-purple-700"
-                                // O link não deve ser desativado na última etapa; ele sempre avança para a busca
-                            >
-                                <span className="mr-1">Buscar Confeitarias</span>
-                                <ChevronRight className="w-6 h-6" />
-                            </Link>
-                        ) : (
-                            <button
-                                onClick={irProximaEtapa}
-                                disabled={isNextDisabled}
-                                className={`flex items-center justify-center w-full max-w-sm px-6 py-3 rounded-full text-lg transition-all 
-                                    ${isNextDisabled 
-                                        ? 'bg-purple-200 text-gray-500 cursor-not-allowed'
-                                        : 'bg-purple-300 text-white hover:bg-purple-400'
-                                    }`}
-                                style={{ backgroundColor: isNextDisabled ? '#E0E7FF' : '#C7D2FE', color: isNextDisabled ? '#9CA3AF' : '#6366F1' }}
-                            >
-                                <span className="mr-1">Avançar</span>
-                                <ChevronRight className="w-6 h-6" />
-                            </button>
-                        )}
-                    </div>
-                </div>
-                
-            </div>
-        </div>
-    );
+                    <button
+                      onClick={() => selecionarConfeiteiro(c.id)}
+                      className="px-4 py-2 rounded-full bg-purple-500 text-white"
+                    >
+                      Selecionar
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
 }

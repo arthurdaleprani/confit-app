@@ -38,17 +38,7 @@ export default function Header() {
           >
             Cadastre-se
           </Link>
-<Link
-            href={ROUTES.INGR_CONFEI}
-            className="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 transition font-medium"
-          >
-            confeiteira
-          </Link><Link
-            href={ROUTES.INICIAR_PEDIDO}
-            className="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 transition font-medium"
-          >
-            client
-          </Link>
+
         </div>
 
       </nav>

@@ -1,164 +1,304 @@
 "use client";
-import Link from "next/link";
-import { User, Calendar, Check, X } from "lucide-react"; 
-import { useState, useEffect } from "react"; // Adicionado useEffect
-import Header from "../../components/header"; 
 
-// --- Tipagem Aprimorada ---
-type Pedido = {
-    id: number;
-    data: string; 
-    descricao: string;
-    status: 'pendente' | 'aprovado' | 'reprovado';
+import { useState, useEffect } from "react";
+import Header from "../../components/headerConfeiteira";
+import { Calendar, Check, X } from "lucide-react";
+
+type UserStorage = {
+  id: number;
+  nomeCompleto: string;
 };
 
-// Componente para o Card de Pedido Individual
+type Cliente = {
+  id: number;
+  nomeCompleto: string;
+};
+
+type Ingrediente = {
+  id: number;
+  nome: string;
+};
+
+type TipoIngrediente = {
+  id: number;
+  nome: string;
+  ingrediente: Ingrediente;
+};
+
+type PedidoResponse = {
+  id: number;
+  dataAtualizacao: string;
+  cliente: Cliente;
+  tiposIngredientes: TipoIngrediente[];
+  status: string;
+};
+
+interface Pedido {
+  id: number;
+  data: string; // yyyy-mm-dd
+  descricao: string;
+  status: "pendente" | "aprovado" | "reprovado";
+  tiposIngredientes: TipoIngrediente[];
+  cliente: Cliente;
+}
+
 interface PedidoCardProps {
-    pedido: Pedido;
-    onAprovar: (id: number) => void;
-    onReprovar: (id: number) => void;
+  pedido: Pedido;
+  onOpenModal: (p: Pedido) => void;
+  onReprovar: (p: Pedido) => void;
 }
 
-const PedidoCard = ({ pedido, onAprovar, onReprovar }: PedidoCardProps) => {
-    let bgColor = 'bg-purple-100';
-    let textColor = 'text-purple-800';
+const PedidoCard = ({ pedido, onOpenModal, onReprovar }: PedidoCardProps) => (
+  <div className="p-3 rounded-lg shadow-sm bg-purple-100 text-purple-800 text-sm font-medium">
+    <p className="font-bold mb-2">{pedido.descricao}</p>
+    <p className="text-xs mb-1">Cliente: {pedido.cliente.nomeCompleto}</p>
+    <p className="text-xs mb-2">
+      Ingredientes: {pedido.tiposIngredientes.map(t => `${t.nome} - ${t.ingrediente.nome}`).join(", ")}
+    </p>
 
-    if (pedido.status === 'aprovado') {
-        bgColor = 'bg-green-100';
-        textColor = 'text-green-700';
-    } else if (pedido.status === 'reprovado') {
-        bgColor = 'bg-red-100';
-        textColor = 'text-red-700';
-    }
+    <div className="flex justify-between space-x-2 mt-2">
+      {pedido.status === "pendente" ? (
+        <>
+          <button
+            onClick={() => onOpenModal(pedido)}
+            className="flex items-center justify-center flex-1 py-1 bg-white text-green-600 rounded-full hover:bg-gray-100 transition-colors border border-green-300"
+          >
+            <Check className="w-4 h-4 mr-1" /> Aprovar
+          </button>
 
-    return (
-        <div className={`p-3 rounded-lg shadow-sm ${bgColor} ${textColor} text-sm font-medium`}>
-            <p className="font-bold mb-2">{pedido.descricao}</p>
-            
-            <div className="flex justify-between space-x-2 mt-2">
-                {pedido.status === 'pendente' ? (
-                    <>
-                        <button 
-                            onClick={() => onAprovar(pedido.id)}
-                            className="flex items-center justify-center flex-1 py-1 bg-white text-green-600 rounded-full hover:bg-gray-100 transition-colors border border-green-300"
-                        >
-                            <Check className="w-4 h-4 mr-1" /> Aprovar
-                        </button>
-                        <button 
-                            onClick={() => onReprovar(pedido.id)}
-                            className="flex items-center justify-center flex-1 py-1 bg-white text-red-600 rounded-full hover:bg-gray-100 transition-colors border border-red-300"
-                        >
-                            <X className="w-4 h-4 mr-1" /> Reprovar
-                        </button>
-                    </>
-                ) : (
-                    <span className={`w-full text-center font-semibold uppercase text-xs p-1 rounded-full ${pedido.status === 'aprovado' ? 'bg-green-500 text-white' : 'bg-red-500 text-white'}`}>
-                        {pedido.status === 'aprovado' ? 'Aprovado' : 'Reprovado'}
-                    </span>
-                )}
-            </div>
-        </div>
-    );
-}
+          <button
+            onClick={() => onReprovar(pedido)}
+            className="flex items-center justify-center flex-1 py-1 bg-white text-red-600 rounded-full hover:bg-gray-100 transition-colors border border-red-300"
+          >
+            <X className="w-4 h-4 mr-1" /> Reprovar
+          </button>
+        </>
+      ) : (
+        <span
+          className={`w-full text-center font-semibold uppercase text-xs p-1 rounded-full ${
+            pedido.status === "aprovado" ? "bg-green-500 text-white" : "bg-red-500 text-white"
+          }`}
+        >
+          {pedido.status === "aprovado" ? "Aprovado" : "Reprovado"}
+        </span>
+      )}
+    </div>
+  </div>
+);
 
 export default function Agenda() {
-    // --- Dados e Lógica de Data ---
-    const diasSemanaNomes = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
+  const diasSemanaNomes = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
+  const [primeiroDia, setPrimeiroDia] = useState(new Date());
+  const [pedidos, setPedidos] = useState<Pedido[]>([]);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [pedidoSelecionado, setPedidoSelecionado] = useState<Pedido | null>(null);
+  const [valorOrcamento, setValorOrcamento] = useState("");
+  const [observacoes, setObservacoes] = useState("");
+  const [loading, setLoading] = useState(false);
 
-    // Gera os próximos 5 dias a partir de hoje
-    const diasSemana = Array.from({ length: 5 }, (_, i) => {
-        const d = new Date();
-        d.setDate(d.getDate() + i);
-        return d.toISOString().split("T")[0]; 
+  const userStorage = localStorage.getItem("usuario");
+  const user: UserStorage | null = userStorage ? JSON.parse(userStorage) : null;
+  const idConfeiteiro = user?.id;
+
+  const diasSemana = Array.from({ length: 5 }, (_, i) => {
+    const d = new Date(primeiroDia);
+    d.setDate(d.getDate() + i);
+    return d.toISOString().split("T")[0];
+  });
+
+  const fetchPedidos = async () => {
+    if (!idConfeiteiro) return;
+    setLoading(true);
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch(`https://localhost:7039/api/pedido/buscar/confeiteiro/${idConfeiteiro}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) throw new Error("Erro ao buscar pedidos");
+      const data: PedidoResponse[] = await res.json();
+
+      const pedidosMapeados: Pedido[] = data.map(p => ({
+        id: p.id,
+        data: p.dataAtualizacao.split("T")[0],
+        descricao: `Pedido #${p.id}`,
+        status: p.status.toLowerCase() as "pendente" | "aprovado" | "reprovado",
+        tiposIngredientes: p.tiposIngredientes,
+        cliente: p.cliente,
+      }));
+
+      setPedidos(pedidosMapeados.filter(p => p.status === "pendente"));
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchPedidos();
+  }, [primeiroDia, idConfeiteiro]);
+
+  const openModal = (p: Pedido) => {
+    setPedidoSelecionado(p);
+    setModalOpen(true);
+  };
+
+  const closeModal = () => {
+    setModalOpen(false);
+    setValorOrcamento("");
+    setObservacoes("");
+  };
+
+  const enviarOrcamento = async () => {
+    if (!pedidoSelecionado) return;
+    setLoading(true);
+
+    try {
+      const token = localStorage.getItem("token");
+      const body = { valor: Number(valorOrcamento), codigoPedido: pedidoSelecionado.id };
+
+      const res = await fetch("https://localhost:7039/api/pagamento/criar", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify(body),
+      });
+      if (!res.ok) throw new Error("Erro ao criar pagamento");
+      await res.json();
+
+      setPedidos(prev =>
+        prev.map(p => (p.id === pedidoSelecionado.id ? { ...p, status: "aprovado" } : p))
+      );
+      closeModal();
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleReprovar = async (pedido: Pedido) => {
+    setLoading(true);
+    try {
+      const token = localStorage.getItem("token");
+      const body = { status: "Recusado", codigoPedido: pedido.id };
+
+      const res = await fetch("https://localhost:7039/api/pedido/alterar/status", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify(body),
+      });
+      if (!res.ok) throw new Error("Erro ao reprovar pedido");
+      await res.json();
+
+      setPedidos(prev =>
+        prev.map(p => (p.id === pedido.id ? { ...p, status: "reprovado" } : p))
+      );
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const nextWeek = () =>
+    setPrimeiroDia(d => {
+      const newD = new Date(d);
+      newD.setDate(newD.getDate() + 5);
+      return newD;
     });
 
-    // Estado inicial dos pedidos
-    const [pedidos, setPedidos] = useState<Pedido[]>([]);
+  const prevWeek = () =>
+    setPrimeiroDia(d => {
+      const newD = new Date(d);
+      newD.setDate(newD.getDate() - 5);
+      return newD;
+    });
 
-    // Função para simular o preenchimento inicial dos pedidos com datas
-    const initializePedidos = () => {
-        const initialPedidos: Pedido[] = [
-            { id: 23456, data: diasSemana[1], descricao: "Pedido: #23456 (Brigadeiro)", status: 'pendente' },
-            { id: 1235, data: diasSemana[1], descricao: "Pedido: #1235 (Baunilha)", status: 'pendente' },
-            { id: 7890, data: diasSemana[2], descricao: "Pedido: #7890 (Red Velvet)", status: 'pendente' },
-            { id: 9999, data: diasSemana[3], descricao: "Pedido: #9999 (Aprovado)", status: 'aprovado' },
-            { id: 1111, data: diasSemana[4], descricao: "Pedido: #1111 (Reprovado)", status: 'reprovado' },
-        ];
-        setPedidos(initialPedidos);
-    };
+  return (
+    <div className="min-h-screen flex flex-col bg-gray-50">
+      <Header />
 
-    // --- CORREÇÃO DO ERRO: Usa useEffect para inicializar os dados apenas na montagem ---
-    useEffect(() => {
-        initializePedidos();
-    }, []); 
+      <div className="max-w-7xl mx-auto w-full py-8 px-6">
+        <h1 className="text-3xl font-bold text-gray-900 mb-4 flex items-center">
+          <Calendar className="w-8 h-8 mr-3 text-purple-600" /> Agenda Semanal de Produção
+        </h1>
 
-    // --- Lógica de Ações ---
-    const handleAprovar = (id: number) => {
-        setPedidos(prev => 
-            prev.map(p => p.id === id ? { ...p, status: 'aprovado' } : p)
-        );
-    };
-
-    const handleReprovar = (id: number) => {
-        setPedidos(prev => 
-            prev.map(p => p.id === id ? { ...p, status: 'reprovado' } : p)
-        );
-    };
-
-
-    return (
-        <div className="min-h-screen flex flex-col bg-gray-50">
-            <Header />
-
-            <div className="max-w-7xl mx-auto w-full py-8 px-6">
-                <h1 className="text-3xl font-bold text-gray-900 mb-8 flex items-center">
-                    <Calendar className="w-8 h-8 mr-3 text-purple-600" /> Agenda Semanal de Produção
-                </h1>
-
-                <section className="bg-white rounded-xl shadow-xl overflow-hidden border border-gray-200">
-                    <div className="grid grid-cols-5 border-t border-gray-200">
-                        {diasSemana.map((dia, index) => {
-                            const dateObj = new Date(dia);
-                            const diaNome = diasSemanaNomes[dateObj.getDay()];
-                            const isToday = index === 0;
-
-                            return (
-                                <div key={dia} className={`min-h-[400px] border-r border-gray-200 last:border-r-0 ${isToday ? 'bg-purple-50' : 'bg-white'}`}>
-                                    
-                                    {/* Cabeçalho do Dia */}
-                                    <div className={`text-center py-3 border-b-4 ${isToday ? 'border-purple-600' : 'border-gray-100'}`}>
-                                        <p className={`text-xs uppercase font-bold ${isToday ? 'text-purple-600' : 'text-gray-500'}`}>
-                                            {diaNome}
-                                        </p>
-                                        <p className={`text-lg font-extrabold ${isToday ? 'text-purple-900' : 'text-gray-800'}`}>
-                                            {dateObj.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" })}
-                                        </p>
-                                    </div>
-
-                                    {/* Lista de Pedidos */}
-                                    <div className="space-y-3 p-3">
-                                        {pedidos
-                                            .filter((p) => p.data === dia)
-                                            .map((pedido) => (
-                                                <PedidoCard 
-                                                    key={pedido.id}
-                                                    pedido={pedido}
-                                                    onAprovar={handleAprovar}
-                                                    onReprovar={handleReprovar}
-                                                />
-                                            ))}
-                                        {pedidos.filter((p) => p.data === dia).length === 0 && (
-                                            <p className="text-center text-gray-400 text-sm italic mt-4">
-                                                Nenhum pedido agendado.
-                                            </p>
-                                        )}
-                                    </div>
-                                </div>
-                            );
-                        })}
-                    </div>
-                </section>
-            </div>
+        <div className="flex justify-between mb-6">
+          <button onClick={prevWeek} className="px-3 py-1 bg-gray-200 rounded hover:bg-gray-300">
+            ← Semana anterior
+          </button>
+          <button onClick={nextWeek} className="px-3 py-1 bg-gray-200 rounded hover:bg-gray-300">
+            Próxima semana →
+          </button>
         </div>
-    );
+
+        {loading && (
+          <p className="text-center text-purple-600 font-bold animate-pulse mb-4">Carregando pedidos...</p>
+        )}
+
+        {modalOpen && pedidoSelecionado && (
+          <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+            <div className="bg-white w-full max-w-md rounded-xl shadow-2xl p-6 relative animate-fadeIn">
+              <h2 className="text-xl font-bold text-gray-900 mb-4">Enviar Orçamento</h2>
+
+              <p className="text-sm text-gray-600 mb-4">
+                Pedido selecionado: <span className="font-semibold">{pedidoSelecionado.descricao}</span>
+              </p>
+
+              <label className="block mb-3 text-gray-700 text-sm">Valor do orçamento (R$)</label>
+              <input
+                type="number"
+                value={valorOrcamento}
+                onChange={e => setValorOrcamento(e.target.value)}
+                className="w-full px-3 py-2 border rounded-lg bg-gray-50 focus:ring-2 focus:ring-purple-500"
+              />
+
+              <label className="block mt-4 mb-2 text-gray-700 text-sm">Observações (opcional)</label>
+              <textarea
+                value={observacoes}
+                onChange={e => setObservacoes(e.target.value)}
+                className="w-full px-3 py-2 h-24 border rounded-lg bg-gray-50 focus:ring-2 focus:ring-purple-500"
+              />
+
+              <div className="flex justify-end mt-6 space-x-3">
+                <button onClick={closeModal} className="px-4 py-2 rounded-lg bg-gray-200 hover:bg-gray-300 text-gray-700">
+                  Cancelar
+                </button>
+                <button onClick={enviarOrcamento} className="px-4 py-2 rounded-lg bg-purple-600 hover:bg-purple-700 text-white">
+                  Enviar Orçamento
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        <section className="bg-white rounded-xl shadow-xl overflow-hidden border border-gray-200">
+          <div className="grid grid-cols-5 border-t border-gray-200">
+            {diasSemana.map(dia => {
+              const dateObj = new Date(dia);
+              const diaNome = diasSemanaNomes[dateObj.getDay()];
+              const pedidosDoDia = pedidos.filter(p => p.data === dia);
+
+              return (
+                <div key={dia} className="min-h-[400px] border-r border-gray-200 last:border-r-0 bg-white">
+                  <div className="text-center py-3 border-b-4 border-gray-100">
+                    <p className="text-xs uppercase font-bold text-gray-500">{diaNome}</p>
+                    <p className="text-lg font-extrabold text-gray-800">{dateObj.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" })}</p>
+                  </div>
+
+                  <div className="space-y-3 p-3">
+                    {pedidosDoDia.map(pedido => (
+                      <PedidoCard key={pedido.id} pedido={pedido} onOpenModal={openModal} onReprovar={handleReprovar} />
+                    ))}
+
+                    {pedidosDoDia.length === 0 && <p className="text-center text-gray-400 text-sm italic mt-4">Nenhum pedido agendado.</p>}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      </div>
+    </div>
+  );
 }
