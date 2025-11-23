@@ -1,3 +1,80 @@
+# Projeto Confeitaria - Front-End
+
+## Estrutura de Pastas e Arquivos
+
+### `src/components`
+Contém componentes reutilizáveis da interface.
+
+- **ui**: Componentes de interface genéricos, como `Button`, `Dialog`, `Input` e `Label`.
+- **Headers e Footer**: Diferentes headers para:
+  - Confeiteiro
+  - Cliente
+  - Páginas iniciais  
+  Além disso, contém o `Footer` e modelo de `Alerts`.
+- **login**: Página de login.
+- **cadastro**: Página de cadastro de usuários.
+- **pedido**: Todas as páginas relacionadas a pedidos.
+
+---
+
+## Rotas
+
+As rotas da aplicação estão definidas em `Routes.ts`:
+
+| Nome                  | Caminho                          |
+|-----------------------|---------------------------------|
+| HOME                  | `/`                             |
+| LOGIN                 | `/login`                        |
+| CADASTRO              | `/cadastro`                     |
+| INICIAR_PEDIDO        | `/pedido/iniciarPedido`         |
+| FAZER_PEDIDO          | `/pedido/pedidoCliente`         |
+| INGR_CONFEI           | `/pedido/ingredientesConfeiteira` |
+| AGN_PED_CONF           | `/pedido/agendaPedidosConfeiteira` |
+| AGN_APROV             | `/pedido/pedenteAprovarConfeiteira` |
+| HIST_CLIENTE          | `/pedido/historicoCliente`      |
+| ORCAMENTO             | `/pedido/solicitarOrcamento`   |
+| PAGAMENTO             | `/pedido/pagamento`             |
+
+---
+
+## `public`
+Contém arquivos públicos, como imagens e ícones SVG:
+
+- `file.svg`
+- `globe.svg`
+- `next.svg`
+- `vercel.svg`
+- `window.svg`
+
+---
+
+## Configurações
+
+- `firebaseconfig.ts`: Configuração do Firebase.
+- `next.config.ts`: Configuração do Next.js.
+- `postcss.config.mjs`: Configuração do PostCSS.
+- `tsconfig.json`: Configuração do TypeScript.
+
+---
+
+## Dependências
+
+- `node_modules`: Pacotes do Node.js.
+- `package.json` / `package-lock.json`: Gerenciamento de dependências.
+
+## .env
+Tem um arquivo .env obviamente não foi commitado e está no gitignore, porem ele é essencial para rodar localmente.
+Todas a variveis la estão nas variaveis de ambiente do github.
+
+# Paleta de Cores
+<img width="761" height="525" alt="image" src="https://github.com/user-attachments/assets/c77da6c9-4723-4467-b80e-64a835dd70ca" />
+
+# Link FIGMA: https://www.figma.com/design/j9bksmIQ8WwRSQzCtjGPVa/Confeitaria?node-id=0-1&p=f
+
+
+
+
+
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
 ## Getting Started
