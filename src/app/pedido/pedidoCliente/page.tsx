@@ -21,18 +21,14 @@ type ConfeiteiroResponse = {
 
 export default function MontarBolo() {
   const MAX_RECHEIOS = 2;
-const router = useRouter();
+  const router = useRouter();
 
+  // Estados
   const [tipos, setTipos] = useState<TipoIngredienteResponse[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const dataEvento = localStorage.getItem("dataEvento");
-  if (!dataEvento) {
-    console.error("Nenhuma data salva!");
-    return null;
-  }
-  const dataEventoISO = new Date(dataEvento).toISOString();
+  const [dataEventoISO, setDataEventoISO] = useState<string | null>(null);
 
   const [etapa, setEtapa] = useState<string>("");
   const [selecionados, setSelecionados] = useState<Record<string, string[]>>({});
@@ -40,6 +36,16 @@ const router = useRouter();
 
   const [confeitarias, setConfeitarias] = useState<ConfeiteiroResponse[]>([]);
   const [loadingConfeitarias, setLoadingConfeitarias] = useState(false);
+
+  // ✅ Ler localStorage no client
+  useEffect(() => {
+    const dataEvento = localStorage.getItem("dataEvento");
+    if (!dataEvento) {
+      console.error("Nenhuma data salva!");
+      return;
+    }
+    setDataEventoISO(new Date(dataEvento).toISOString());
+  }, []);
 
   // Buscar tipos de ingrediente
   useEffect(() => {
@@ -65,16 +71,19 @@ const router = useRouter();
     fetchTipos();
   }, []);
 
-  // --- Loading bonito para tipos ---
-  if (loading)
+  // Loading inicial ou erro
+  if (!dataEventoISO || loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-white">
         <div className="flex flex-col items-center space-y-4">
           <div className="w-16 h-16 border-4 border-purple-400 border-t-transparent rounded-full animate-spin"></div>
-          <p className="text-gray-700 text-lg font-medium">Carregando tipos de ingredientes...</p>
+          <p className="text-gray-700 text-lg font-medium">
+            {!dataEventoISO ? "Carregando informações do evento..." : "Carregando tipos de ingredientes..."}
+          </p>
         </div>
       </div>
     );
+  }
 
   if (error)
     return (
@@ -90,6 +99,7 @@ const router = useRouter();
       </div>
     );
 
+  // Preparar steps e opções
   const steps = Array.from(new Set(tipos.map(t => t.ingrediente.nome)));
   const opcoes = steps.reduce((acc, step) => {
     const items = [...tipos.filter(t => t.ingrediente.nome === step)];
@@ -103,6 +113,7 @@ const router = useRouter();
   const currentStepIndex = steps.indexOf(etapa);
   const isFinalStep = currentStepIndex === steps.length - 1;
 
+  // Funções de seleção
   const toggleSelecionado = (id: number) => {
     const valor = id.toString();
     setSelecionados(prev => {
@@ -118,15 +129,26 @@ const router = useRouter();
     });
   };
 
+  // Buscar confeitarias
   const buscarConfeiteiros = async () => {
     setLoadingConfeitarias(true);
     try {
       const params = new URLSearchParams();
       const userStorage = localStorage.getItem("usuario");
-      const user = JSON.parse(userStorage!);
+      if (!userStorage) {
+        toast.error("Usuário não encontrado!");
+        return;
+      }
+      const user = JSON.parse(userStorage);
 
       params.append("CodigoCliente", user.id.toString());
-      tipos.forEach(t => params.append("CodigosTiposIngredientes", t.id.toString()));
+
+      // Enviar apenas tipos selecionados
+      const ingredientesSelecionadosIds = Object.values(selecionados)
+        .flat()
+        .map(x => parseInt(x, 10))
+        .filter(x => x !== -1);
+      ingredientesSelecionadosIds.forEach(id => params.append("CodigosTiposIngredientes", id.toString()));
 
       const res = await fetch(
         `https://confeitaria-production.up.railway.app/api/confeiteiro/buscar/confeiteiros-proximos?${params.toString()}`
@@ -148,13 +170,18 @@ const router = useRouter();
     }
   };
 
+  // Selecionar confeiteiro
   const selecionarConfeiteiro = async (confeiteiroId: number) => {
     const userStorage = localStorage.getItem("usuario");
-    const user = JSON.parse(userStorage!);
+    if (!userStorage) {
+      toast.error("Usuário não encontrado!");
+      return;
+    }
+    const user = JSON.parse(userStorage);
 
     const ingredientesSelecionadosIds = Object.values(selecionados)
       .flat()
-      .map(x => parseInt(x))
+      .map(x => parseInt(x, 10))
       .filter(x => x !== -1);
 
     const body = {
@@ -177,14 +204,14 @@ const router = useRouter();
     }
 
     toast.success("Pedido criado com sucesso!");
-      router.push(ROUTES.INICIAR_PEDIDO);
-
+    router.push(ROUTES.INICIAR_PEDIDO);
   };
 
   const isNextDisabled =
     (etapa.toLowerCase() === "massa" && selecionados[etapa].length === 0) ||
     (etapa.toLowerCase() === "recheio" && selecionados[etapa].length === 0);
 
+  // Render
   return (
     <div className="min-h-screen bg-white">
       <Header />
@@ -193,15 +220,15 @@ const router = useRouter();
         {!mostrarConfeitarias && (
           <div className="flex">
             <aside className="w-1/4 pr-8 border-r border-gray-200">
-           <button
-  onClick={() => {
-    const currentIndex = steps.indexOf(etapa); // recalcula no clique
-    if (currentIndex > 0) setEtapa(steps[currentIndex - 1]);
-  }}
-  className="flex items-center text-gray-600 hover:text-gray-900 mb-8"
->
-  <ChevronLeft className="w-5 h-5 mr-1" /> Voltar
-</button>
+              <button
+                onClick={() => {
+                  const currentIndex = steps.indexOf(etapa);
+                  if (currentIndex > 0) setEtapa(steps[currentIndex - 1]);
+                }}
+                className="flex items-center text-gray-600 hover:text-gray-900 mb-8"
+              >
+                <ChevronLeft className="w-5 h-5 mr-1" /> Voltar
+              </button>
 
               <div className="space-y-4">
                 {steps.map((step, idx) => {
@@ -215,9 +242,7 @@ const router = useRouter();
                       onClick={() => (active || completed) && setEtapa(step)}
                       className={`
                         w-full py-3 rounded-lg text-lg transition
-                        ${active ? "bg-purple-500 text-white font-semibold shadow"
-                          : completed ? "bg-purple-200 text-purple-900"
-                          : "bg-gray-100 text-gray-600"}
+                        ${active ? "bg-purple-500 text-white font-semibold shadow" : completed ? "bg-purple-200 text-purple-900" : "bg-gray-100 text-gray-600"}
                         ${!active && !completed ? "opacity-50 cursor-not-allowed" : "hover:opacity-90"}
                       `}
                     >
