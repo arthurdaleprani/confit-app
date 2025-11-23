@@ -16,7 +16,7 @@ const PedidosAguardandoPagamento: NextPage = () => {
 
     const user = JSON.parse(userStorage);
 
-    fetch(`https://localhost:7039/api/pedido/buscar/cliente/${user.id}`)
+    fetch(`https://confeitaria-production.up.railway.app/api/pedido/buscar/cliente/${user.id}`)
       .then(r => r.json())
       .then(data => {
         console.log("API =>", data);

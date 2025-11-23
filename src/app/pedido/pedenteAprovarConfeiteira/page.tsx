@@ -111,7 +111,7 @@ export default function Agenda() {
     setLoading(true);
     try {
       const token = localStorage.getItem("token");
-      const res = await fetch(`https://localhost:7039/api/pedido/buscar/confeiteiro/${idConfeiteiro}`, {
+      const res = await fetch(`https://confeitaria-production.up.railway.app/api/pedido/buscar/confeiteiro/${idConfeiteiro}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (!res.ok) throw new Error("Erro ao buscar pedidos");
@@ -157,7 +157,7 @@ export default function Agenda() {
       const token = localStorage.getItem("token");
       const body = { valor: Number(valorOrcamento), codigoPedido: pedidoSelecionado.id };
 
-      const res = await fetch("https://localhost:7039/api/pagamento/criar", {
+      const res = await fetch("https://confeitaria-production.up.railway.app/api/pagamento/criar", {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify(body),
@@ -182,7 +182,7 @@ export default function Agenda() {
       const token = localStorage.getItem("token");
       const body = { status: "Recusado", codigoPedido: pedido.id };
 
-      const res = await fetch("https://localhost:7039/api/pedido/alterar/status", {
+      const res = await fetch("https://confeitaria-production.up.railway.app/api/pedido/alterar/status", {
         method: "PATCH",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify(body),

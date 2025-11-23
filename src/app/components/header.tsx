@@ -122,7 +122,7 @@ export default function Header() {
     };
 
     try {
-      const response = await fetch("https://localhost:7039/api/endereco/criar", {
+      const response = await fetch("https://confeitaria-production.up.railway.app/api/endereco/criar", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -152,7 +152,7 @@ export default function Header() {
     try {
       const body = { codigoCliente: user.id, codigoEndereco: id };
       const response = await fetch(
-        "https://localhost:7039/api/cliente/alterar/endereco-principal",
+        "https://confeitaria-production.up.railway.app/api/cliente/alterar/endereco-principal",
         {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },

@@ -39,7 +39,7 @@ export default function HistoricoPedidos() {
 
         const user = JSON.parse(userRaw);
 
-        fetch(`https://localhost:7039/api/pedido/buscar/cliente/${user.id}`)
+        fetch(`https://confeitaria-production.up.railway.app/api/pedido/buscar/cliente/${user.id}`)
             .then(r => r.json())
             .then(data => {
                 setPedidos(data);

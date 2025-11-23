@@ -57,7 +57,7 @@ export default function Agenda() {
     try {
       const token = localStorage.getItem("token");
       const res = await fetch(
-        `https://localhost:7039/api/pedido/buscar/confeiteiro/${user.id}`,
+        `https://confeitaria-production.up.railway.app/api/pedido/buscar/confeiteiro/${user.id}`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
       if (!res.ok) throw new Error("Erro ao buscar pedidos");

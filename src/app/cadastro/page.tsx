@@ -85,7 +85,7 @@ export default function Register() {
       const fetchTipos = async () => {
         setLoadingTipos(true);
         try {
-          const res = await fetch("https://localhost:7039/api/ingrediente/tipo/");
+          const res = await fetch("https://confeitaria-production.up.railway.app/api/ingrediente/tipo/");
           if (!res.ok) throw new Error("Erro ao buscar tipos de ingrediente");
           const data: TipoIngredienteResponse[] = await res.json();
           setTiposIngredientes(data);
@@ -119,7 +119,7 @@ export default function Register() {
 
   // Funções para cadastrar cliente e confeiteiro
   async function cadastrarCliente(dados: any) {
-    const response = await fetch("https://localhost:7039/api/cliente/criar", {
+    const response = await fetch("https://confeitaria-production.up.railway.app/api/cliente/criar", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -137,7 +137,7 @@ export default function Register() {
   }
 
   async function cadastrarConfeiteiro(dados: any) {
-    const response = await fetch("https://localhost:7039/api/confeiteiro/criar", {
+    const response = await fetch("https://confeitaria-production.up.railway.app/api/confeiteiro/criar", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

@@ -45,7 +45,7 @@ const router = useRouter();
   useEffect(() => {
     const fetchTipos = async () => {
       try {
-        const res = await fetch("https://localhost:7039/api/ingrediente/buscar/tipo");
+        const res = await fetch("https://confeitaria-production.up.railway.app/api/ingrediente/buscar/tipo");
         if (!res.ok) throw new Error("Erro ao buscar tipos de ingrediente");
         const data: TipoIngredienteResponse[] = await res.json();
         setTipos(data);
@@ -129,7 +129,7 @@ const router = useRouter();
       tipos.forEach(t => params.append("CodigosTiposIngredientes", t.id.toString()));
 
       const res = await fetch(
-        `https://localhost:7039/api/confeiteiro/buscar/confeiteiros-proximos?${params.toString()}`
+        `https://confeitaria-production.up.railway.app/api/confeiteiro/buscar/confeiteiros-proximos?${params.toString()}`
       );
 
       if (!res.ok) {
@@ -164,7 +164,7 @@ const router = useRouter();
       CodigosTiposIngredientes: ingredientesSelecionadosIds,
     };
 
-    const res = await fetch("https://localhost:7039/api/pedido/criar", {
+    const res = await fetch("https://confeitaria-production.up.railway.app/api/pedido/criar", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),

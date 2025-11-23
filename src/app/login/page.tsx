@@ -27,8 +27,8 @@ export default function Login() {
 
       const endpoint =
         tipoConta === "cliente"
-          ? `https://localhost:7039/api/cliente/buscar/email?Email=${email}`
-          : `https://localhost:7039/api/confeiteiro/buscar/email?Email=${email}`;
+          ? `https://confeitaria-production.up.railway.app/api/cliente/buscar/email?Email=${email}`
+          : `https://confeitaria-production.up.railway.app/api/confeiteiro/buscar/email?Email=${email}`;
 
       const resposta = await fetch(endpoint, {
         headers: { Authorization: `Bearer ${token}` },
