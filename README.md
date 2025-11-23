@@ -66,6 +66,10 @@ Contém arquivos públicos, como imagens e ícones SVG:
 Tem um arquivo .env obviamente não foi commitado e está no gitignore, porem ele é essencial para rodar localmente.
 Todas a variveis la estão nas variaveis de ambiente do github.
 
+# Paleta de Cores
+<img width="761" height="525" alt="image" src="https://github.com/user-attachments/assets/c77da6c9-4723-4467-b80e-64a835dd70ca" />
+
+# Link FIGMA: https://www.figma.com/design/j9bksmIQ8WwRSQzCtjGPVa/Confeitaria?node-id=0-1&p=f
 
 
 
