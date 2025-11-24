@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import Header from "../../components/headerConfeiteira";
 import { Calendar, Check, X } from "lucide-react";
+import toast from "react-hot-toast";
 
 type UserStorage = {
   id: number;
@@ -31,6 +32,7 @@ type PedidoResponse = {
   cliente: Cliente;
   tiposIngredientes: TipoIngrediente[];
   status: string;
+  pagamento?: { valor: number; data: string } | null; // novo campo
 };
 
 interface Pedido {
@@ -40,6 +42,7 @@ interface Pedido {
   status: "pendente" | "aprovado" | "reprovado";
   tiposIngredientes: TipoIngrediente[];
   cliente: Cliente;
+  pagamento: null | { valor: number; data: string }; // pagamento
 }
 
 interface PedidoCardProps {
@@ -57,7 +60,11 @@ const PedidoCard = ({ pedido, onOpenModal, onReprovar }: PedidoCardProps) => (
     </p>
 
     <div className="flex justify-between space-x-2 mt-2">
-      {pedido.status === "pendente" ? (
+      {pedido.pagamento ? (
+        <span className="w-full text-center font-semibold uppercase text-xs p-1 rounded-full bg-green-500 text-white">
+          Aprovado
+        </span>
+      ) : pedido.status === "pendente" ? (
         <>
           <button
             onClick={() => onOpenModal(pedido)}
@@ -97,7 +104,6 @@ export default function Agenda() {
   const [loading, setLoading] = useState(false);
   const [idConfeiteiro, setIdConfeiteiro] = useState<number | null>(null);
 
-  // ✅ Pega usuário do localStorage dentro de useEffect
   useEffect(() => {
     const userStorage = localStorage.getItem("usuario");
     if (userStorage) {
@@ -106,20 +112,17 @@ export default function Agenda() {
     }
   }, []);
 
-  // ✅ Busca pedidos quando idConfeiteiro ou primeiroDia mudar
   useEffect(() => {
     const fetchPedidos = async () => {
       if (!idConfeiteiro) return;
       setLoading(true);
       try {
         const token = localStorage.getItem("token");
-        console.log("confeiteiro", idConfeiteiro)
         const res = await fetch(`https://confeitaria-production.up.railway.app/api/pedido/buscar/confeiteiro/${idConfeiteiro}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         if (!res.ok) throw new Error("Erro ao buscar pedidos");
         const data: PedidoResponse[] = await res.json();
-
         const pedidosMapeados: Pedido[] = data.map(p => ({
           id: p.id,
           data: p.dataAtualizacao.split("T")[0],
@@ -127,9 +130,11 @@ export default function Agenda() {
           status: p.status.toLowerCase() as "pendente" | "aprovado" | "reprovado",
           tiposIngredientes: p.tiposIngredientes,
           cliente: p.cliente,
+          pagamento: p.pagamento ?? null,
         }));
+console.log("res", data)
 
-        setPedidos(pedidosMapeados.filter(p => p.status === "pendente"));
+        setPedidos(pedidosMapeados);
       } catch (err) {
         console.error(err);
       } finally {
@@ -140,7 +145,6 @@ export default function Agenda() {
     fetchPedidos();
   }, [primeiroDia, idConfeiteiro]);
 
-  // --- Modal e ações ---
   const openModal = (p: Pedido) => {
     setPedidoSelecionado(p);
     setModalOpen(true);
@@ -163,11 +167,15 @@ export default function Agenda() {
         body: JSON.stringify({ valor: Number(valorOrcamento), codigoPedido: pedidoSelecionado.id }),
       });
       setPedidos(prev =>
-        prev.map(p => (p.id === pedidoSelecionado.id ? { ...p, status: "aprovado" } : p))
+        prev.map(p =>
+          p.id === pedidoSelecionado.id ? { ...p, status: "aprovado", pagamento: { valor: Number(valorOrcamento), data: new Date().toISOString() } } : p
+        )
       );
       closeModal();
+      toast.success("Pedido aprovado com sucesso!");
     } catch (err) {
       console.error(err);
+      toast.error("Erro ao enviar orçamento");
     } finally {
       setLoading(false);
     }
@@ -180,13 +188,15 @@ export default function Agenda() {
       await fetch("https://confeitaria-production.up.railway.app/api/pedido/alterar/status", {
         method: "PATCH",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ status: "reprovado", codigoPedido: pedido.id }),
+        body: JSON.stringify({ status: "ecusado", codigoPedido: pedido.id }),
       });
       setPedidos(prev =>
         prev.map(p => (p.id === pedido.id ? { ...p, status: "reprovado" } : p))
       );
+      toast.success("Pedido reprovado");
     } catch (err) {
       console.error(err);
+      toast.error("Erro ao reprovar pedido");
     } finally {
       setLoading(false);
     }
