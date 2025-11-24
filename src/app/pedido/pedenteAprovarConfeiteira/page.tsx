@@ -188,7 +188,7 @@ console.log("res", data)
       await fetch("https://confeitaria-production.up.railway.app/api/pedido/alterar/status", {
         method: "PATCH",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ status: "ecusado", codigoPedido: pedido.id }),
+        body: JSON.stringify({ status: "recusado", codigoPedido: pedido.id }),
       });
       setPedidos(prev =>
         prev.map(p => (p.id === pedido.id ? { ...p, status: "reprovado" } : p))
