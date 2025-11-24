@@ -116,6 +116,9 @@ const PedidosAguardandoPagamento: NextPage = () => {
                   <span className="font-medium">Data:</span>{" "}
                   {new Date(p.dataAtualizacao).toLocaleDateString()}
                 </p>
+ <p className="text-gray-700">
+                  <span className="font-medium">Valor: R$</span> {p.pagamento.valor}
+                </p>
 
                 <p className="text-gray-700 mb-2">
                   <span className="font-medium">Ingredientes:</span>
