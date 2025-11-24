@@ -137,7 +137,7 @@ export default function Register() {
   }
 
   async function cadastrarConfeiteiro(dados: any) {
-    const response = await fetch("https://localhost:7039/api/confeiteiro/criar", {
+    const response = await fetch("https://confeitaria-production.up.railway.app/api/confeiteiro/criar", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
