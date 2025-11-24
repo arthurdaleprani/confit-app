@@ -122,25 +122,26 @@ export default function Register() {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: "Bearer " + localStorage.getItem("tokenPublico"),
       },
       body: JSON.stringify(dados),
     });
 
     if (!response.ok) {
       const erro = await response.text();
+            console.log("Erro ao cadastrar cliente: " + erro);
       throw new Error("Erro ao cadastrar cliente: " + erro);
+
     }
 
     return await response.json();
   }
 
   async function cadastrarConfeiteiro(dados: any) {
-    const response = await fetch("https://confeitaria-production.up.railway.app/api/confeiteiro/criar", {
+    const response = await fetch("https://localhost:7039/api/confeiteiro/criar", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: "Bearer " + localStorage.getItem("tokenPublico"),
+        //Authorization: "Bearer " + localStorage.getItem("tokenPublico"),
       },
       body: JSON.stringify(dados),
     });
